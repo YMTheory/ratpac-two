@@ -1,0 +1,57 @@
+////// JUNO
+{
+name: "MATERIAL",
+index: "photocathode_Ham20inch"
+valid_begin : [0, 0],
+valid_end : [0, 0],
+density: 5.0,
+nelements: 1,
+nmaterials: 0,
+elements: ["Potassium"],
+elemprop: [1.0],
+}
+
+{
+name: "MATERIAL",
+index: "photocathode_MCP20inch"
+valid_begin : [0, 0],
+valid_end : [0, 0],
+density: 5.0,
+nelements: 1,
+nmaterials: 0,
+elements: ["Potassium"],
+elemprop: [1.0],
+}
+
+{
+name: "MATERIAL",
+index: "LS_JUNO",
+valid_begin: [0, 0],
+valid_end:   [0, 0],
+density: 0.859,
+nelements: 4,
+nmaterials: 0,
+elements: ["Carbon", "Hydrogen", "Oxygen", "Nitrogen"],
+//elements: ["TS_C_of_Graphite", "TS_H_of_Water", "Oxygen", "Nitrogen"],
+elemprop: [0.87761, 0.1220, 0.00018, 0.00021], 
+}
+
+
+
+//{
+//name: "MATERIAL",
+//index: "acrylic_JUNO",
+//valid_begin: [0, 0],
+//valid_end:   [0, 0],
+//density: 1.180,
+//nelements: 5,
+//nmaterials: 0,
+//elements: ["Carbon", "", "", "", "" ],
+////elements: ["TS_C_of_Graphite", "TS_H_of_Water", "Oxygen", "Nitrogen"],
+//elemprop: [0.87761, 0.1220, 0.00018, 0.00021], 
+//}
+
+
+
+
+
