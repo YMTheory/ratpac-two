@@ -31,25 +31,25 @@ valid_end:   [0, 0],
 density: 0.859,
 nelements: 4,
 nmaterials: 0,
-elements: ["Carbon", "Hydrogen", "Oxygen", "Nitrogen"],
-//elements: ["TS_C_of_Graphite", "TS_H_of_Water", "Oxygen", "Nitrogen"],
+//elements: ["Carbon", "Hydrogen", "Oxygen", "Nitrogen"],
+elements: ["TS_C_of_Graphite", "TS_H_of_Water", "Oxygen", "Nitrogen"],
 elemprop: [0.87761, 0.1220, 0.00018, 0.00021], 
 }
 
 
 
-//{
-//name: "MATERIAL",
-//index: "acrylic_JUNO",
-//valid_begin: [0, 0],
-//valid_end:   [0, 0],
-//density: 1.180,
-//nelements: 5,
-//nmaterials: 0,
-//elements: ["Carbon", "", "", "", "" ],
-////elements: ["TS_C_of_Graphite", "TS_H_of_Water", "Oxygen", "Nitrogen"],
-//elemprop: [0.87761, 0.1220, 0.00018, 0.00021], 
-//}
+{
+name: "MATERIAL",
+index: "acrylic_JUNO",
+valid_begin: [0, 0],
+valid_end:   [0, 0],
+density: 1.180,
+nelements: 4,
+nmaterials: 0,
+//elements: ["Carbon", "Hydrogen", "", "", "" ],
+elements: ["TS_C_of_Graphite", "TS_H_of_Water", "Oxygen", "Nitrogen"],
+elemprop: [0.87761, 0.1220, 0.00018, 0.00021], 
+}
 
 
 
