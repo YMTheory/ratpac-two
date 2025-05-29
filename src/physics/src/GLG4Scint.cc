@@ -30,12 +30,20 @@
 #include <RAT/TrackInfo.hh>
 #include <fileio.hpp>
 
+#include "G4Electron.hh"
+#include "G4Gamma.hh"
+#include "G4LossTableManager.hh"
+#include "G4MaterialCutsCouple.hh"
+#include "G4PhysicalConstants.hh"
+#include "G4SystemOfUnits.hh"
 #include "G4Timer.hh"
 #include "G4TrackFastVector.hh"  // for G4TrackFastVectorSize
 #include "G4UIcmdWithAString.hh"
 #include "G4UIdirectory.hh"
+#include "G4UnitsTable.hh"
 #include "G4ios.hh"
 #include "Randomize.hh"
+#include "globals.hh"
 
 std::vector<GLG4Scint *> GLG4Scint::fMasterVectorOfGLG4Scint;
 // top level of scintillation command
@@ -239,6 +247,8 @@ G4int GLG4Scint_num_phots = 0;
 // distributed evenly along the track segment and uniformly into 4pi.
 G4VParticleChange *GLG4Scint::PostPostStepDoIt(const G4Track &aTrack, const G4Step &aStep) {
 #ifdef RATDEBUG
+
+  /// Below is the previous implementations in RATPAC
   G4Timer timer;
   timer.Start();
   GLG4Scint_num_calls++;
@@ -405,8 +415,41 @@ G4VParticleChange *GLG4Scint::PostPostStepDoIt(const G4Track &aTrack, const G4St
       numSecondaries = 1;
       weight = aTrack.GetWeight();
     } else {  // apply Birk's law
+
+      // Added by Miao Yu (copied from JUNO DsG4Scintillation class)
+      const G4DynamicParticle *aParticle = aTrack.GetDynamicParticle();
+      const G4String aParticleName = aParticle->GetDefinition()->GetParticleName();
+      const G4Material *aMaterial = aTrack.GetMaterial();
+
+      G4double dE = TotalEnergyDeposit;
+      G4double dx = aStep.GetStepLength();
+      G4double dE_dx = dE / dx;
+      if (aTrack.GetDefinition() == G4Gamma::Gamma() && dE > 0) {
+        G4LossTableManager *manager = G4LossTableManager::Instance();
+        dE_dx = dE / manager->GetRange(G4Electron::Electron(), dE, aTrack.GetMaterialCutsCouple());
+      }
+
+      G4double delta = dE_dx / aMaterial->GetDensity();
+
+      G4double birk1 = 0.;
+      G4double birk2 = 0.;
+
+      if (aParticleName == "gamma" || aParticleName == "e+" || aParticleName == "e-") {
+        birk1 = 12.05e-3 * g / cm2 / MeV;
+        birk2 = 0.;
+      } else if (abs(aParticle->GetCharge()) < 1.5) {
+        birk1 = 6.5e-3 * g / cm2 / MeV;
+        birk2 = 1.5e-6 * (g / cm2 / MeV) * (g / cm2 / MeV);
+      } else {
+        birk1 = 3.705e-3 * g / cm2 / MeV;
+        birk2 = 1.5e-6 * (g / cm2 / MeV) * (g / cm2 / MeV);
+      }
+
+      G4double QuenchedTotalEnergyDeposit = TotalEnergyDeposit / (1 + birk1 * delta + birk2 * delta * delta);
+
+      // previous codes for Birk's law..
       G4double birksConstant = physicsEntry->fBirksConstant;
-      G4double QuenchedTotalEnergyDeposit = fQuenching->QuenchedEnergyDeposit(aStep, birksConstant);
+      // G4double QuenchedTotalEnergyDeposit = fQuenching->QuenchedEnergyDeposit(aStep, birksConstant);
 
       // track total edep, quenched edep
       fTotEdep += TotalEnergyDeposit;
@@ -420,8 +463,10 @@ G4VParticleChange *GLG4Scint::PostPostStepDoIt(const G4Track &aTrack, const G4St
       }
 
       // calculate MeanNumPhotons
-      G4double MeanNumPhotons = ScintillationYield * GetQuenchingFactor() * QuenchedTotalEnergyDeposit *
-                                (1.0 + birksConstant * (physicsEntry->fRefdEdx));
+      // G4double MeanNumPhotons = ScintillationYield * GetQuenchingFactor() * QuenchedTotalEnergyDeposit *
+      //                          (1.0 + birksConstant * (physicsEntry->fRefdEdx));
+
+      G4double MeanNumPhotons = ScintillationYield * QuenchedTotalEnergyDeposit;
 
       if (MeanNumPhotons <= 0.0) {
         goto PostStepDoIt_DONE;
