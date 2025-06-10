@@ -22,8 +22,8 @@ type: "tube",
 r_max: 21750, // radius, mm
 size_z: 22000, // half-height, mm
 material: "water",
-color: [1.0, 1.0, 1.0],
-invisible: 1,
+color: [0.5, 0.3, 0.1, 0.2],
+//invisible: 1,
 }
 
 // Do not put the SS supppor for now
@@ -45,23 +45,50 @@ invisible: 1,
 
 {
 name: "GEO",
-index: "innerPMT",
+index: "CDHamPMT",
 valid_begin: [0, 0],
 valid_end: [0, 0],
 mother: "outerWP",
 type: "pmtarray",
-pmt_model: "r1408", 
+pmt_model: "Ham20inch_JUNO", 
+//pmt_model: "r1408", 
 pmt_detector_type: "idpmt",
 sensitive_detector: "/mydet/pmt/inner",
-efficiency_correction: 1.000,  
+//efficiency_correction: 1.000,  
 add_concentrator: 0, // Flag: 0 = no concentrators, 1 = concentrators
-pos_table: "PMTINFO_CD_LPMT_JUNO",
+#pos_table: "PMTINFO_CD_LPMT_JUNO",
+#pos_table: "PMTINFO_CD_Ham_LPMT_JUNO",
+pos_table: "PMT_CD_Ham_LPMT"
 orientation: "point", // Aim all PMTs at a point
 	     	      // "manual" means there is a dir_x, dir_y, dir_z
 	              // in pos_table for manual orientation of PMTs
 orient_point: [0.0, 0.0, 0.0],
+color: [0.8, 0.1, 0.4, 0.2],
 }
 
+
+{
+name: "GEO",
+index: "CDNNVTPMT",
+valid_begin: [0, 0],
+valid_end: [0, 0],
+mother: "outerWP",
+type: "pmtarray",
+pmt_model: "NNVT20inch_JUNO", 
+//pmt_model: "r1408", 
+pmt_detector_type: "idpmt",
+sensitive_detector: "/mydet/pmt/inner",
+//efficiency_correction: 1.000,  
+add_concentrator: 0, // Flag: 0 = no concentrators, 1 = concentrators
+#pos_table: "PMTINFO_CD_LPMT_JUNO",
+#pos_table: "PMTINFO_CD_Ham_LPMT_JUNO",
+pos_table: "PMT_CD_NNVT_LPMT"
+orientation: "point", // Aim all PMTs at a point
+	     	      // "manual" means there is a dir_x, dir_y, dir_z
+	              // in pos_table for manual orientation of PMTs
+orient_point: [0.0, 0.0, 0.0],
+color: [0.8, 0.1, 0.4, 0.2],
+}
 
 {
 name: "GEO",
@@ -70,14 +97,15 @@ valid_begin: [0, 0],
 valid_end: [0, 0],
 mother: "outerWP",
 type: "pmtarray", 
-pmt_model: "r1408",
+pmt_model: "NNVT20inch_JUNO",
 pmt_detector_type: "idpmt",
 sensitive_detector: "/mydet/pmt/inner",
 efficiency_correction: 1.000,
 add_concentrator: 0,
 pos_table: "PMTINFO_WP_LPMT_JUNO",
 orientation: "manual",
-invisible: 1,
+//invisible: 1,
+color: [0.3, 0.4, 0.1, 0.5],
 }
 
 
@@ -88,13 +116,14 @@ valid_begin: [0, 0],
 valid_end: [0, 0],
 mother: "outerWP",
 type: "pmtarray", 
-pmt_model: "r1408",
+pmt_model: "NNVT20inch_JUNO",
 pmt_detector_type: "idpmt",
 sensitive_detector: "/mydet/pmt/inner",
 efficiency_correction: 1.000,
 add_concentrator: 0,
 pos_table: "PMTINFO_WP_WALPMT_JUNO",
 orientation: "manual",
+color: [0.5, 0.3, 0.1, 0.4],
 }
 
 {
@@ -106,7 +135,8 @@ mother: "outerWP",
 type: "sphere",
 r_min: 17700, // Inner radius, mm
 r_max: 17824, // Outer radius, mm
-material: "acrylic_sno",
+//material: "acrylic_sno",
+material: "acrylic_JUNO",
 color: [0.0, 0.3, 1.0, 0.2],
 }
 
@@ -118,6 +148,7 @@ valid_end: [0, 0],
 mother: "outerWP",
 type: "sphere",
 r_max: 17700, 
-material: "scintillator",
+//material: "scintillator",
+material: "LS_JUNO",
 color: [0.2, 0.1, 0.1, 0.5],
 }
