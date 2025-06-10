@@ -17,6 +17,8 @@
 #include <G4RunManager.hh>
 #include <RAT/BNLOpWLSBuilder.hh>
 #include <RAT/DB.hh>
+#include <RAT/DsG4Cerenkov.hh>
+#include <RAT/DsG4Scintillation.hh>
 #include <RAT/G4OpWLSBuilder.hh>
 #include <RAT/GLG4OpAttenuation.hh>
 #include <RAT/GLG4Scint.hh>
@@ -27,6 +29,10 @@
 #include <RAT/PhysicsList.hh>
 #include <RAT/PhysicsListMessenger.hh>
 #include <RAT/ThinnableG4Cerenkov.hh>
+
+#include "G4Cerenkov.hh"
+#include "G4OpAbsorption.hh"
+#include "G4OpRayleigh.hh"
 
 namespace RAT {
 
@@ -130,21 +136,30 @@ void PhysicsList::ConstructOpticalProcesses() {
   //
   // Request that Cerenkov photons be tracked first, before continuing
   // originating particle step.  Otherwise, we get too many secondaries!
-  ThinnableG4Cerenkov *cerenkovProcess = nullptr;
+  // ThinnableG4Cerenkov *cerenkovProcess = nullptr;
+  DsG4Cerenkov *cerenkovProcess = nullptr;
   if (this->IsCerenkovEnabled) {
-    cerenkovProcess = new ThinnableG4Cerenkov();
-    double thinning = 1.0 / RAT::PhotonThinning::GetCherenkovThinningFactor();
-    cerenkovProcess->SetThinningFactor(thinning);
-    cerenkovProcess->SetLowerWavelengthThreshold(RAT::PhotonThinning::GetCherenkovLowerWavelengthThreshold());
-    cerenkovProcess->SetUpperWavelengthThreshold(RAT::PhotonThinning::GetCherenkovUpperWavelengthThreshold());
-    cerenkovProcess->SetTrackSecondariesFirst(true);
-    cerenkovProcess->SetMaxNumPhotonsPerStep(this->CerenkovMaxNumPhotonsPerStep);
+    // cerenkovProcess = new ThinnableG4Cerenkov();
+    // double thinning = 1.0 / RAT::PhotonThinning::GetCherenkovThinningFactor();
+    // cerenkovProcess->SetThinningFactor(thinning);
+    // cerenkovProcess->SetLowerWavelengthThreshold(RAT::PhotonThinning::GetCherenkovLowerWavelengthThreshold());
+    // cerenkovProcess->SetUpperWavelengthThreshold(RAT::PhotonThinning::GetCherenkovUpperWavelengthThreshold());
+    // cerenkovProcess->SetTrackSecondariesFirst(true);
+    // cerenkovProcess->SetMaxNumPhotonsPerStep(this->CerenkovMaxNumPhotonsPerStep);
+
+    // cerenkovProcess = new G4Cerenkov();
+    cerenkovProcess = new DsG4Cerenkov();
   }
 
   // Attenuation: RAT's GLG4OpAttenuation
   //
   // GLG4OpAttenuation implements Rayleigh scattering.
-  GLG4OpAttenuation *attenuationProcess = new GLG4OpAttenuation();
+  // GLG4OpAttenuation *attenuationProcess = new GLG4OpAttenuation();
+
+  // Using Absorption and Rayleigh separately instead of the Attenuation process
+  G4OpAbsorption *absorptionProcess = new G4OpAbsorption();
+
+  G4OpRayleigh *rayleighProcess = new G4OpRayleigh();
 
   // Scintillation: RAT's GLG4Scint
   //
@@ -163,14 +178,17 @@ void PhysicsList::ConstructOpticalProcesses() {
   GLG4Scint *neutronScintProcess = new GLG4Scint("neutron", 0.999 * neutronMass);
   GLG4Scint *alphaScintProcess = new GLG4Scint("alpha", 0.9 * alphaMass);
 
+  // Scintillation process copied from JUNO-offline
+  DsG4Scintillation *JunoScintProcess = new DsG4Scintillation();
+
   // Optical boundary processes: default G4
   G4OpBoundaryProcess *opBoundaryProcess = new G4OpBoundaryProcess();
   // Rayleigh Scattering
-  OpRayleigh *opRayleigh = new OpRayleigh();
+  // OpRayleigh *opRayleigh = new OpRayleigh();
 
   // Wavelength shifting: User-selectable via PhysicsListMessenger
   // Add call to SetOpWLSModel so it can be set from DB too... Need to reorganize in future
-  SetOpWLSModel(this->wlsModelName);
+  // SetOpWLSModel(this->wlsModelName);
   if (this->wlsModel) {
     wlsModel->ConstructProcess();
   }
@@ -180,7 +198,7 @@ void PhysicsList::ConstructOpticalProcesses() {
     if (this->IsCerenkovEnabled) {
       cerenkovProcess->DumpInfo();
     }
-    attenuationProcess->DumpInfo();
+    // attenuationProcess->DumpInfo();
     defaultScintProcess->DumpInfo();
     protonScintProcess->DumpInfo();
     neutronScintProcess->DumpInfo();
@@ -191,7 +209,7 @@ void PhysicsList::ConstructOpticalProcesses() {
   if (this->IsCerenkovEnabled) {
     cerenkovProcess->SetVerboseLevel(verboseLevel - 1);
   }
-  attenuationProcess->SetVerboseLevel(verboseLevel - 1);
+  // attenuationProcess->SetVerboseLevel(verboseLevel - 1);
   defaultScintProcess->SetVerboseLevel(verboseLevel - 1);
   protonScintProcess->SetVerboseLevel(verboseLevel - 1);
   neutronScintProcess->SetVerboseLevel(verboseLevel - 1);
@@ -211,10 +229,19 @@ void PhysicsList::ConstructOpticalProcesses() {
       }
     }
     if (particleName == "opticalphoton") {
-      pmanager->AddDiscreteProcess(attenuationProcess);
+      // pmanager->AddDiscreteProcess(attenuationProcess);
       pmanager->AddDiscreteProcess(opBoundaryProcess);
-      pmanager->AddDiscreteProcess(opRayleigh);
+      // pmanager->AddDiscreteProcess(opRayleigh);
+      pmanager->AddDiscreteProcess(absorptionProcess);
+      pmanager->AddDiscreteProcess(rayleighProcess);
     }
+
+    /// Added by Miao Yu to use the JUNO customized Scintillation process
+    // if (JunoScintProcess && JunoScintProcess->IsApplicable(*particle)) {
+    //     pmanager->AddProcess(JunoScintProcess);
+    //     pmanager->SetProcessOrderingToLast(JunoScintProcess, idxAtRest);
+    //     pmanager->SetProcessOrderingToLast(JunoScintProcess, idxPostStep);
+    // }
   }
 }
 
