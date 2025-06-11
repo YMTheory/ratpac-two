@@ -1,4 +1,7 @@
 #include <RAT/DsG4Cerenkov.hh>
+//#include <RAT/Log.hh>
+//#include <RAT/MuteGeant4.hh>
+#include <vector>
 
 #include "G4LossTableManager.hh"
 #include "G4Material.hh"
@@ -19,7 +22,11 @@
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 DsG4Cerenkov::DsG4Cerenkov(const G4String& processName, G4ProcessType type)
-    : G4VProcess(processName, type), fNumPhotons(0) {
+    : G4VProcess(processName, type), fNumPhotons(0) 
+    , should_thin(false), thinning_factor(1.0)
+    , lower_wavelength_threshold(0.0)
+    , upper_wavelength_threshold(2000.0)
+{
   secID = G4PhysicsModelCatalog::GetModelID("model_Cerenkov");
   SetProcessSubType(fCerenkov);
 
@@ -30,6 +37,57 @@ DsG4Cerenkov::DsG4Cerenkov(const G4String& processName, G4ProcessType type)
   }
   Initialise();
 }
+
+void DsG4Cerenkov::SetThinningFactor(double thinning) {
+    if ( (thinning > 0 ) && (thinning < 1.0) ) {
+        this->should_thin = true;
+        this->thinning_factor = thinning;
+    } else if (thinning_factor == 1.0) {
+        this->should_thin = this->should_thin || false;
+        this->thinning_factor = thinning;
+    } else {
+        //Log::Die(dformat("Cannot thin photons with acceptance %1.f%", thinning));
+        G4cout << "Cannot thin photons with acceptance " << thinning << G4endl;
+    }
+}
+
+
+double DsG4Cerenkov::GetThinningFactor() {
+  double rv = this->thinning_factor;
+  return rv;
+}
+
+
+void DsG4Cerenkov::SetLowerWavelengthThreshold(double wvl_thresh_lo) {
+  if (wvl_thresh_lo > 0) {
+    this->should_thin = true;
+    this->lower_wavelength_threshold = wvl_thresh_lo;
+  } else if (wvl_thresh_lo == 0) {
+    this->should_thin = this->should_thin || false;
+    this->lower_wavelength_threshold = wvl_thresh_lo;
+  } else {
+    //Log::Die(dformat("Cannot set lower wavelength threshold for Cerenkov photons below 0: %1.f%", wvl_thresh_lo));
+    G4cout << "Cannot set lower wavelength threshold for Cerenkov photons below 0: " << wvl_thresh_lo << G4endl;
+  }
+}
+
+double DsG4Cerenkov::GetLowerWavelengthThreshold() {
+  double rv = this->lower_wavelength_threshold;
+  return rv;
+}
+
+void DsG4Cerenkov::SetUpperWavelengthThreshold(double wvl_thresh_hi) {
+  if (wvl_thresh_hi < 2000) {  // Ignore any threshold sufficiently above visible light
+    this->should_thin = true;
+    this->upper_wavelength_threshold = wvl_thresh_hi;
+  }
+}
+
+double DsG4Cerenkov::GetUpperWavelengthThreshold() {
+  double rv = this->upper_wavelength_threshold;
+  return rv;
+}
+
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 DsG4Cerenkov::~DsG4Cerenkov() {
@@ -138,7 +196,6 @@ void DsG4Cerenkov::BuildPhysicsTable(const G4ParticleDefinition&) {
 G4VParticleChange* DsG4Cerenkov::PostStepDoIt(const G4Track& aTrack, const G4Step& aStep)
 
 {
-  G4cout << "DsG4Cerenkov Post Step Do It run here" << G4endl;
   aParticleChange.Initialize(aTrack);
 
   const G4DynamicParticle* aParticle = aTrack.GetDynamicParticle();
@@ -160,6 +217,7 @@ G4VParticleChange* DsG4Cerenkov::PostStepDoIt(const G4Track& aTrack, const G4Ste
   G4double charge = aParticle->GetDefinition()->GetPDGCharge();
   G4double beta = (pPreStepPoint->GetBeta() + pPostStepPoint->GetBeta()) * 0.5;
 
+  //G4cout << "DsG4Cerenkov: particle energy " << aTrack.GetKineticEnergy() * MeV << " and Beta is " << beta << G4endl;
   G4double MeanNumberOfPhotons = GetAverageNumberOfPhotons(charge, beta, aMaterial, Rindex);
 
   if (MeanNumberOfPhotons <= 0.0) {
@@ -382,6 +440,113 @@ G4double DsG4Cerenkov::GetAverageNumberOfPhotons(const G4double charge, const G4
   std::size_t length = CerenkovAngleIntegrals->GetVectorLength();
   if (0 == length) return 0.0;
 
+  // new version from JUNO offline cerenkov modified
+  G4int cross_num;
+  std::vector<double> the_energies_threshold;
+  
+  cross_num = 0;
+  size_t vec_length = Rindex->GetVectorLength();
+
+  G4double maxRI=(*Rindex)[0]; G4double minRI=(*Rindex)[0];
+  for (size_t ii = 1;
+          ii < vec_length;
+          ++ii) {
+      G4double currentRI = (*Rindex)[ii];
+      if (currentRI > maxRI) maxRI = currentRI;
+      if (currentRI < minRI) minRI = currentRI;
+  }
+  //G4cout << "DsG4Cerenkov rindex range is from " 
+  //       << minRI
+  //       << " to " 
+  //       << maxRI 
+  //       << ", and the current refractive index threshold is " 
+  //       << BetaInverse 
+  //       << G4endl;
+     if (BetaInverse <= minRI) { // All range is OK!
+
+         // cross_up[0] = Rindex->Energy(0);
+         // cross_down[0] = Rindex->Energy(vec_length-1);
+         cross_num = 1;
+
+         the_energies_threshold.push_back(Rindex->Energy(0));
+         the_energies_threshold.push_back(Rindex->Energy(vec_length-1));
+
+         //G4cout << "Range [ " << cross_up[0] << ", " << cross_down[0] << "]" << G4endl;
+
+     } else if (BetaInverse >= maxRI) { // Out of Range 
+         cross_num = 0;
+
+     } else {   // between min and max
+
+         // below is impl by Tao Lin
+         double currentRI = (*Rindex)[0];
+         double currentPM = Rindex->Energy(0);
+
+         // first point
+         if (currentRI >= BetaInverse) {
+             the_energies_threshold.push_back(currentPM);
+         }
+
+         // middle points
+         if (vec_length>2) {
+             for (size_t ii = 1; ii < vec_length; ++ii) {
+                 double prevRI = (*Rindex)[ii-1];
+                 double prevPM = Rindex->Energy(ii-1);
+                 double currentRI = (*Rindex)[ii];
+                 double currentPM = Rindex->Energy(ii);
+
+                 // two case here
+                 if ( (prevRI >= BetaInverse and currentRI < BetaInverse)
+                      or (prevRI < BetaInverse and currentRI >= BetaInverse) ) {
+                     double energy_threshold = (BetaInverse-prevRI)/(currentRI-prevRI)*(currentPM-prevPM) + prevPM;
+                     the_energies_threshold.push_back(energy_threshold);
+                 }
+             
+             }
+         }
+
+         // last point
+         currentRI = (*Rindex)[vec_length-1];
+         currentPM = Rindex->Energy(vec_length-1);
+         if (currentRI >= BetaInverse) {
+             the_energies_threshold.push_back(currentPM);
+         }
+
+         if ((the_energies_threshold.size()%2) != 0) {
+             G4cerr << "ERROR: missing endpoint for the_energies_threshold? "
+                    << "The size of the_energies_threshold is "
+                    << the_energies_threshold.size()
+                    << G4endl;
+         }
+
+         cross_num = the_energies_threshold.size() / 2;
+     }
+     G4double dp1 = 0; G4double ge1 = 0;
+     for (int i=0; i<cross_num; i++) {
+        dp1 += the_energies_threshold[2*i+1] - the_energies_threshold[2*i];
+        G4bool isOutRange;
+        ge1 += CerenkovAngleIntegrals->GetValue(the_energies_threshold[2*i+1], isOutRange) 
+               - CerenkovAngleIntegrals->GetValue(the_energies_threshold[2*i], isOutRange);
+     }
+
+  // Calculate number of photons 
+  //G4double NumPhotons = Rfact * charge/eplus * charge/eplus *
+  //                               (dp - ge * BetaInverse*BetaInverse);
+  G4double NumPhotons = Rfact * charge/eplus * charge/eplus *
+         (dp1 - ge1 * BetaInverse*BetaInverse);
+
+  //G4cout << "DsG4Cerenkov: cross number is " << cross_num 
+  //       << " range from "
+  //       << the_energies_threshold[0]
+  //       << the_energies_threshold[1]
+  //       << " , and total " << NumPhotons << " Cerenkov photons are expected to be seen." << G4endl;
+  return NumPhotons;    
+
+
+
+
+  ////// Old version from official Geant4
+  /*
   // Min and Max photon energies
   G4double Pmin = Rindex->Energy(0);
   G4double Pmax = Rindex->GetMaxEnergy();
@@ -424,6 +589,7 @@ G4double DsG4Cerenkov::GetAverageNumberOfPhotons(const G4double charge, const G4
   G4double NumPhotons = Rfact * charge / eplus * charge / eplus * (dp - ge * BetaInverse * BetaInverse);
 
   return NumPhotons;
+  */
 }
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 void DsG4Cerenkov::SetTrackSecondariesFirst(const G4bool state) {

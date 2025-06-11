@@ -140,15 +140,15 @@ void PhysicsList::ConstructOpticalProcesses() {
   DsG4Cerenkov *cerenkovProcess = nullptr;
   if (this->IsCerenkovEnabled) {
     // cerenkovProcess = new ThinnableG4Cerenkov();
-    // double thinning = 1.0 / RAT::PhotonThinning::GetCherenkovThinningFactor();
-    // cerenkovProcess->SetThinningFactor(thinning);
-    // cerenkovProcess->SetLowerWavelengthThreshold(RAT::PhotonThinning::GetCherenkovLowerWavelengthThreshold());
-    // cerenkovProcess->SetUpperWavelengthThreshold(RAT::PhotonThinning::GetCherenkovUpperWavelengthThreshold());
-    // cerenkovProcess->SetTrackSecondariesFirst(true);
-    // cerenkovProcess->SetMaxNumPhotonsPerStep(this->CerenkovMaxNumPhotonsPerStep);
+    cerenkovProcess = new DsG4Cerenkov();
+    double thinning = 1.0 / RAT::PhotonThinning::GetCherenkovThinningFactor();
+    cerenkovProcess->SetThinningFactor(thinning);
+    cerenkovProcess->SetLowerWavelengthThreshold(RAT::PhotonThinning::GetCherenkovLowerWavelengthThreshold());
+    cerenkovProcess->SetUpperWavelengthThreshold(RAT::PhotonThinning::GetCherenkovUpperWavelengthThreshold());
+    cerenkovProcess->SetTrackSecondariesFirst(true);
+    cerenkovProcess->SetMaxNumPhotonsPerStep(this->CerenkovMaxNumPhotonsPerStep);
 
     // cerenkovProcess = new G4Cerenkov();
-    cerenkovProcess = new DsG4Cerenkov();
   }
 
   // Attenuation: RAT's GLG4OpAttenuation
