@@ -167,6 +167,8 @@ GLG4Scint::GLG4Scint(const G4String &tablename, G4double lowerMassLimit) {
   RAT::DB *db = RAT::DB::Get();
   RAT::DBLinkPtr tbl = db->GetLink("QUENCHING");
   std::string selection = tbl->GetS("model");
+  birks_curve = tbl->GetS("birks_curve");
+  G4cout << "Using Birks's law from " << birks_curve << G4endl;
   BirksLaw model;
   if (selection == "birks") {
     model = BirksLaw();
@@ -194,6 +196,8 @@ GLG4Scint::GLG4Scint(const G4String &tablename, G4double lowerMassLimit) {
       RAT::Log::Die(msg);
     }
     this->fQuenching = new IntegratedQuenchingCalculator(model, quadrature);
+  } else if (strategy == "JUNO") {
+    fJUNOQuenching = new JUNOQuenchingCalculator();
   } else {
     // no such quenching calculation strategy
     std::string msg = "Invalid quenching calculation strategy: " + strategy;
@@ -416,6 +420,8 @@ G4VParticleChange *GLG4Scint::PostPostStepDoIt(const G4Track &aTrack, const G4St
       weight = aTrack.GetWeight();
     } else {  // apply Birk's law
 
+      G4double QuenchedTotalEnergyDeposit = 0;
+      if (birks_curve == "JUNO" ) {
       // Added by Miao Yu (copied from JUNO DsG4Scintillation class)
       const G4DynamicParticle *aParticle = aTrack.GetDynamicParticle();
       const G4String aParticleName = aParticle->GetDefinition()->GetParticleName();
@@ -445,12 +451,13 @@ G4VParticleChange *GLG4Scint::PostPostStepDoIt(const G4Track &aTrack, const G4St
         birk2 = 1.5e-6 * (g / cm2 / MeV) * (g / cm2 / MeV);
       }
 
-      G4double QuenchedTotalEnergyDeposit = TotalEnergyDeposit / (1 + birk1 * delta + birk2 * delta * delta);
-
-      // previous codes for Birk's law..
-      G4double birksConstant = physicsEntry->fBirksConstant;
-      // G4double QuenchedTotalEnergyDeposit = fQuenching->QuenchedEnergyDeposit(aStep, birksConstant);
-
+      QuenchedTotalEnergyDeposit = TotalEnergyDeposit / (1 + birk1 * delta + birk2 * delta * delta);
+      }
+      if (birks_curve == "RATPAC") {
+        // previous codes for Birk's law..
+        G4double birksConstant = physicsEntry->fBirksConstant;
+        QuenchedTotalEnergyDeposit = fQuenching->QuenchedEnergyDeposit(aStep, birksConstant);
+      }
       // track total edep, quenched edep
       fTotEdep += TotalEnergyDeposit;
       fTotEdepQuenched += QuenchedTotalEnergyDeposit;

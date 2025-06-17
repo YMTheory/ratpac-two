@@ -27,6 +27,7 @@
 #include <RAT/Log.hh>
 #include <RAT/Quadrature.hh>
 #include <RAT/QuenchingCalculator.hh>
+#include <RAT/JUNOQuenchingCalculator.hh>
 
 #include "G4DynamicParticle.hh"
 #include "G4Material.hh"
@@ -341,6 +342,8 @@ class GLG4Scint : public G4UImessenger  // not creating a separate class is my l
 
   QuenchingCalculator *fQuenching;
 
+  JUNOQuenchingCalculator* fJUNOQuenching;
+
   // total real energy deposited and total quenched energy deposited
   static G4double fTotEdep;
   static G4double fTotEdepQuenched;
@@ -369,6 +372,9 @@ class GLG4Scint : public G4UImessenger  // not creating a separate class is my l
   static void SetPrimaryEnergy(G4double pe) { fPrimaryEnergy = pe; }
   static G4String GetPrimaryName() { return fPrimaryName; }
   static void SetPrimaryName(G4String pn) { fPrimaryName = pn; }
+
+ private:
+  std::string birks_curve;
 };
 
 ////////////////////
